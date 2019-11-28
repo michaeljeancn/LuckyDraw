@@ -1,0 +1,272 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>抽奖系统</title>
+    <meta charset="utf-8">
+    <style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    .title {
+        font-size: 80px;
+        font-weight: bold;
+        width: 600px;
+        height: 100px;
+        margin: 0 auto;
+        padding-top: 30px;
+        text-align: center;
+        color: #f00;
+    }
+
+    .btns {
+        width: 190px;
+        height: 30px;
+        margin: 0 auto;
+    }
+
+    .btns span{
+        font-family: '微软雅黑';
+        font-size: 14px;
+        line-height: 27px;
+        display: block;
+        float: left;
+        width: 80px;
+        height: 27px;
+        margin-right: 10px;
+        cursor: pointer;
+        text-align: center;
+        color: #fff;
+        border: 1px solid #eee;
+        border-radius: 7px;
+        background: #036;
+    }
+    #result, .hidden {
+        display: none;
+    }
+    </style>
+    <script type="text/javascript">
+    window.$ = window.jQuery = require("./jquery.min");
+    const fs = require('fs');
+    let data, names, ENsGroup;
+    if (process.env.NODE_ENV === 'production') {
+        myJsonPath = ('./resources/app/data/');
+    } else {
+        myJsonPath = ('./data/');
+    }
+    fs.readFile(`${myJsonPath}ENGroup.json`, (err, ENs) => {
+        if (err) throw err;
+        ENsGroup = JSON.parse(ENs);
+        data = ENsGroup.readyGroup;
+        names = ENsGroup.readyName;
+    });
+    timer = null, // Setup the timer
+    flag = 0; // Record keyboard status
+
+    $(document).ready(function() {
+
+        let play = document.getElementById('play'),
+            stop = document.getElementById('stop');
+
+        play.style.background = '#999';
+        stop.style.background = '#999';
+
+        // Luckydraw buttons events
+        play.onclick = playFun;
+        stop.onclick = stopFun;
+
+        // Keyboard event
+        document.onkeyup = function(event) {
+            event = event || window.event;
+            if (event.keyCode == 13) {
+                if (flag == 0) {
+                    playFun();
+                    flag = 1;
+                } else {
+                    stopFun();
+                    flag = 0;
+                }
+            }
+        }
+
+        // Change Luckydraw Level
+        $('#level').change(function() {
+            if ($('#title').text() !== '抽奖结束啦！') {
+                play.style.background = '#036';
+            } else {
+                play.style.background = '#999';
+                play.onclick = '#';
+                stop.onclick = '#';
+            }
+            console.log($(this).val());
+        });
+    });
+    // Start function
+    function playFun() {
+        let title = document.getElementById('title');
+        let play = document.getElementById('play');
+        let stop = document.getElementById('stop');
+        // Clean up the timer interval everytime
+        clearInterval(timer);
+        $('#name').text('');
+        
+        if ($('#rewardGrouplv4 td').length + $('#rewardGrouplv3 td').length + $('#rewardGrouplv2 td').length + $('#rewardGrouplv1 td').length > 0) {
+            $.each(data, function(x, myEn) {
+                this.myEn = myEn;
+                this.x = x;
+
+                $('#rewardGrouplv4 td').each(function() {
+                    if (myEn == $(this).text()) {
+                        data.splice(x, 1);
+                    }
+                });                
+                $('#rewardGrouplv3 td').each(function() {
+                    if (myEn == $(this).text()) {
+                        data.splice(x, 1);
+                    }
+                });
+                $('#rewardGrouplv2 td').each(function() {
+                    if (myEn == $(this).text()) {
+                        data.splice(x, 1);
+                    }
+                });
+                $('#rewardGrouplv1 td').each(function() {
+                    if (myEn == $(this).text()) {
+                        data.splice(x, 1);
+                    }
+                });
+            });
+        }
+        timer = setInterval(function() {
+            let random = Math.floor(Math.random() * data.length);
+            title.innerHTML = data[random];
+        }, 50);
+        play.style.background = '#999';
+        stop.style.background = '#036';
+    }
+    // Stop function
+    function stopFun() {
+        clearInterval(timer);
+        let play = document.getElementById('play');
+        let stop = document.getElementById('stop');
+        let level = $('#level').val();
+        let rowNo;
+
+        $.each(ENsGroup.readyGroup, function(x, myEn) {
+            if (myEn == $('#title').text()) {
+                let myName = ENsGroup.readyName[x];
+                $('#name').text(myName);
+            }
+        });
+
+        $('#result').show('1000');
+        if (level === 'lv4') {
+            $('#rewardGrouplv4').show('1000');
+        } else if (level === 'lv3') {
+            $('#rewardGrouplv3').show('1000');
+        } else if (level === 'lv2') {
+            $('#rewardGrouplv2').show('1000');
+        } else {
+            $('#rewardGrouplv1').show('1000');
+        }
+
+        if ($(`#rewardGroup${level} td`).length % 6 > 0) {
+                rowNo = Math.floor($(`#rewardGroup${level} td`).length / 6);
+                $(`#rewardGroup${level} tbody tr:eq(${rowNo})`).append(`
+                    <td>
+                        <p style="width: 120px;">
+                            ${$('#title').text()}
+                        </p>
+                        <p style="width: 120px;">
+                            ${$('#name').text()}
+                        </p>
+                    </td>
+                `);
+            } else if ($(`#rewardGroup${level} td`).length % 6 === 0){
+                $(`#rewardGroup${level} tbody`).append(`<tr>
+                    <td>
+                        <p style="width: 120px;">
+                            ${$('#title').text()}
+                        </p>
+                        <p style="width: 120px;">
+                            ${$('#name').text()}
+                        </p>
+                    </td>
+                </tr>`);
+            }
+        if (data.length > 1) {
+            play.style.background = '#036';
+            stop.style.background = '#999';
+            
+        } else {
+            $('#title').text('抽奖结束啦！');
+            play.style.background = '#999';
+            stop.style.background = '#999';
+            play.onclick = '#';
+            stop.onclick = '#';
+        }
+    }
+    </script>
+</head>
+
+<body>
+    <div id="title" class="title">开始抽奖啦！</div>
+    <div id="name" class="title"></div>
+    <div class="btns">
+        <p><select id="level">
+            <option value="" selected="selected">请选择抽奖级别</option>
+            <option value="lv4">四等奖</option>
+            <option value="lv3">三等奖</option>
+            <option value="lv2">二等奖</option>
+            <option value="lv1">一等奖</option>
+        </select></p>
+        <span id="play">开 始</span>
+        <span id="stop">停 止</span>
+    </div>
+    <br />
+    <div>
+        <div id="result">
+            <span>中奖员工号：</span>
+        </div>
+        <table id="rewardGrouplv4" class="hidden">
+            <thead>
+                <tr>
+                    <th>四等奖：</th>
+                </tr>
+            </thead>
+            <tbody style="color: blue; text-align: center; font: 12;">
+            </tbody>
+        </table>
+        <table id="rewardGrouplv3" class="hidden">
+            <thead>
+                <tr>
+                    <th>三等奖：</th>
+                </tr>
+            </thead>
+            <tbody style="color: blue; text-align: center; font: 12;">
+            </tbody>
+        </table>
+        <table id="rewardGrouplv2" class="hidden">
+            <thead>
+                <tr>
+                    <th>二等奖：</th>
+                </tr>
+            </thead>
+            <tbody style="color: blue; text-align: center; font: 12;">
+            </tbody>
+        </table>
+        <table id="rewardGrouplv1" class="hidden">
+            <thead>
+                <tr>
+                    <th>一等奖：</th>
+                </tr>
+            </thead>
+            <tbody style="color: blue; text-align: center; font: 12;">
+            </tbody>
+        </table>
+    </div>
+</body>
+
+</html>
